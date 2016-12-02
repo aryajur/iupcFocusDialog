@@ -1,42 +1,11 @@
--- iupcFocusDialog test bench
-	-- Code to replace \.. in the paths to absolute paths so that Zerobrane debugging works
-	local newPath
-	for path in package.path:gmatch("[^;]+") do
-		local strt,stp = path:find([[\..]],1,true)
-		while strt do
-			if strt > 1 then
-				path = path:sub(1,path:sub(1,strt-1):find([[%\[^%\]+$]])-1)..path:sub(stp+1,-1)
-				strt,stp = path:find([[\..]],1,true)
-			else		
-				strt = nil
-			end
-		end
-		if not newPath then
-			newPath = path
-		else
-			newPath = newPath..";"..path
-		end
-	end
-	package.path = newPath
+-- Things to test
+-- New Dialog shown with focus on different elements without it disappearing
+-- Focus dialog created over another dialog and then parent dialog closed
 
-	newPath = nil
-	for path in package.cpath:gmatch("[^;]+") do
-		local strt,stp = path:find([[\..]],1,true)
-		while strt do
-			if strt > 1 then
-				path = path:sub(1,path:sub(1,strt-1):find([[%\[^%\]+$]])-1)..path:sub(stp+1,-1)
-				strt,stp = path:find([[\..]],1,true)
-			else		
-				strt = nil
-			end
-		end
-		if not newPath then
-			newPath = path
-		else
-			newPath = newPath..";"..path
-		end
-	end
-	package.cpath = newPath
+-- iupcFocusDialog test bench
+
+
+require("zerobranedebug")	-- To allow breakpoints in the other files to work 
 
 fd = require("iupcFocusDialog")
 print(fd)
@@ -47,7 +16,9 @@ dlg = iup.dialog{iup.vbox{lbl,tb}; title="Dialog",size="QUARTERxQUARTER",shrink 
 --dlg:show()
 
 --print("Label and parent",tostring(lbl),tostring(iup.GetParent(lbl)))
-fd.popup(dlg)
+fd.popup(dlg,700,670)
+
+print(tb.position,dlg.screenposition,lbl.position,dlg.clientoffset)
 
 if (iup.MainLoopLevel()==0) then
   iup.MainLoop()

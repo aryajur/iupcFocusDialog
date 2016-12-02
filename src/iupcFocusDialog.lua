@@ -107,6 +107,6 @@ function popup(dlg,x,y)
 	if x+dw >= w then
 		x = x-dw
 	end
-	dlg:showxy(400,400)
+	dlg:showxy(x,y)
 	tim.run = "YES"
 end
