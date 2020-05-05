@@ -5,7 +5,6 @@
 -- iupcFocusDialog test bench
 
 
-require("zerobranedebug")	-- To allow breakpoints in the other files to work 
 
 fd = require("iupcFocusDialog")
 print(fd)

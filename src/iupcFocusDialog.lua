@@ -10,18 +10,24 @@ local tostring = tostring
 local type = type
 local tonumber = tonumber
 
+local tu = require("tableUtils")
+
 local print = print
 
 -- Create the module table here
 local M = {}
 package.loaded[...] = M
-_ENV = M		-- Lua 5.2+
+if setfenv and type(setfenv) == "function" then
+	setfenv(1,M)	-- Lua 5.1
+else
+	_ENV = M		-- Lua 5.2+
+end
 
-_VERSION = "1.15.9.7"
+_VERSION = "1.20.4.30"
 
 -- dialog is the handle for the dialog
 -- xmy are the screen coordinates relative to shich the dialog has to be displayed
-function popup(dlg,x,y)
+function popup(dlg,x,y,callback)
 	if not x or type(x) ~= "number" then
 		x = iup.CENTER
 	end
@@ -30,7 +36,8 @@ function popup(dlg,x,y)
 	end	
 	
 	-- Create list of controls in the dialog
-	local controls = {tostring(dlg)}
+	--local controls = {tostring(dlg)}
+	local controls = {dlg}
 	local done
 	local currControl = dlg
 	while not done do
@@ -51,16 +58,51 @@ function popup(dlg,x,y)
 			else
 				-- There is a brother 
 				currControl = iup.GetBrother(currControl)
-				controls[#controls + 1] = tostring(currControl)
+				--controls[#controls + 1] = tostring(currControl)
+				controls[#controls + 1] = currControl
 			end
 		else
 			-- This has a child
 			currControl = iup.GetChild(currControl,0)
-			controls[#controls + 1] = tostring(currControl)
+			--controls[#controls + 1] = tostring(currControl)
+			controls[#controls + 1] = currControl
+		end
+	end
+	
+	-- For each control add a getfocus_cb and killfocus_cb
+	local cntrlFocus = {}
+	local oldGetFocus, oldKillFocus = {},{}
+	local function getfocus(ctrl)
+		print(tostring(ctrl).." got focus")
+		local i = tu.inArray(controls,ctrl)
+		if i then
+			cntrlFocus[i] = true
+			if oldGetFocus[i] then
+				oldGetFocus[i](ctrl)
+			end
+		end
+	end
+	
+	local function killfocus(ctrl)
+		print(tostring(ctrl).." lost focus")
+		local i = tu.inArray(controls,ctrl)
+		if i then
+			cntrlFocus[i] = false
+			if oldKillFocus[i] then
+				oldKillFocus[i](ctrl)
+			end
 		end
 	end
 	
 	for i = 1,#controls do
+		if controls[i].getfocus_cb then
+			oldGetFocus[i] = controls[i].getfocus_cb
+		end
+		if controls[i].killfocus_cb then
+			oldKillFocus[i] = controls[i].killfocus_cb
+		end
+		controls[i].getfocus_cb = getfocus
+		controls[i].killfocus_cb = killfocus
 		print(controls[i])
 	end
 	
@@ -75,19 +117,31 @@ function popup(dlg,x,y)
 			return
 		end
 		]]
-		local fc = tostring(iup.GetFocus())
+		--local fc = tostring(iup.GetFocus())
 		--print(fc)
 		-- Check if it matches any of the controls
 		
 		local match
 		for i = 1,#controls	do
+			--[[
 			if controls[i] == fc then
+				match = true
+				break
+			end]]
+			if cntrlFocus[i] then
 				match = true
 				break
 			end
 		end
 		if not match then
 			--print("lost focus")
+			if callback and type(callback) == "function" then
+				pcall(callback)
+			end
+			for i = 1,#controls do
+				controls[i].getfocus_cb = oldGetFocus[i]
+				controls[i].killfocus_cb = oldKillFocus[i]
+			end
 			dlg:hide()
 			tim:destroy()
 		else
